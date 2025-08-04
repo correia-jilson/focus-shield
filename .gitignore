@@ -1,0 +1,27 @@
+# Development files
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/
+
+# Chrome extension development
+*.crx
+*.pem
+key.pem
+
+# Node modules (if we add build tools later)
+node_modules/
+npm-debug.log*
+
+# Distribution files
+dist/
+build/
+
+# Environment files
+.env
+.env.local
+
+# Temporary files
+temp/
+tmp/
