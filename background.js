@@ -170,7 +170,7 @@ class FocusShieldBackground {
             action: {
                 type: 'redirect',
                 redirect: {
-                    url: chrome.runtime.getURL('blocked.html') + '?site=' + encodeURIComponent(site)
+                    url: chrome.runtime.getURL('blocked-simple.html') + '?site=' + encodeURIComponent(site)
                 }
             },
             condition: {

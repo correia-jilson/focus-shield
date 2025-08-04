@@ -262,16 +262,15 @@
         </div>
 
         <div class="actions">
-            <button class="action-button" onclick="goBack()">
+            <button class="action-button" id="goBackBtn">
                 ← Go Back
             </button>
-            <button class="action-button" onclick="openNewTab()">
+            <button class="action-button" id="newTabBtn">
                 🏠 New Tab
             </button>
-            <button class="action-button danger-button" onclick="emergencyBreak()">
+            <button class="action-button danger-button" id="emergencyBreakBtn">
                 🚨 Emergency Break
             </button>
-            
         </div>
     </div>
 
@@ -372,57 +371,92 @@
             }
         }
 
-        function goBack() {
-            if (window.history.length > 1) {
-                window.history.back();
-            } else {
-                window.location.href = 'chrome://newtab/';
-            }
-        }
-
-        function openNewTab() {
-            // Try to open new tab, fallback to current tab
-            try {
-                chrome.tabs.create({ url: 'chrome://newtab/' }, () => {
-                    // Close current tab after new tab opens
-                    chrome.tabs.getCurrent((tab) => {
-                        if (tab) {
-                            chrome.tabs.remove(tab.id);
-                        }
-                    });
-                });
-            } catch (error) {
-                // Fallback: navigate current tab to new tab page
-                window.location.href = 'chrome://newtab/';
-            }
-        }
-
-        function emergencyBreak() {
-            if (confirm('Are you sure you want to end your focus session? This will be recorded in your stats.')) {
-                // Add 10 second delay for friction
-                const btn = event.target;
-                btn.textContent = '⏳ Breaking in 10s...';
-                btn.disabled = true;
-                
-                let countdown = 10;
-                const interval = setInterval(() => {
-                    countdown--;
-                    btn.textContent = `⏳ Breaking in ${countdown}s...`;
-                    
-                    if (countdown <= 0) {
-                        clearInterval(interval);
-                        chrome.runtime.sendMessage({ action: 'emergencyBreak' }, () => {
-                            window.location.href = 'chrome://newtab/';
-                        });
-                    }
-                }, 1000);
-            }
-        }
-
         // Initialize when DOM is loaded
         document.addEventListener('DOMContentLoaded', () => {
             new BlockedPageController();
+            setupButtonHandlers();
         });
+
+        // Set up button event handlers
+        function setupButtonHandlers() {
+            // Go Back button
+            document.getElementById('goBackBtn').addEventListener('click', () => {
+                if (window.history.length > 1) {
+                    window.history.back();
+                } else {
+                    window.location.href = 'chrome://newtab/';
+                }
+            });
+
+            // New Tab button  
+            document.getElementById('newTabBtn').addEventListener('click', () => {
+                try {
+                    // Try to create new tab through extension API
+                    chrome.tabs.create({ url: 'chrome://newtab/' }).then(() => {
+                        // Attempt to close current tab
+                        chrome.tabs.getCurrent().then(tab => {
+                            if (tab) {
+                                chrome.tabs.remove(tab.id);
+                            }
+                        });
+                    }).catch(() => {
+                        // Fallback: navigate current tab
+                        window.location.href = 'chrome://newtab/';
+                    });
+                } catch (error) {
+                    // Direct fallback
+                    window.location.href = 'chrome://newtab/';
+                }
+            });
+
+            // Emergency Break button
+            document.getElementById('emergencyBreakBtn').addEventListener('click', (event) => {
+                if (confirm('Are you sure you want to end your focus session? This will be recorded in your stats.')) {
+                    const btn = event.target;
+                    btn.textContent = '⏳ Breaking in 10s...';
+                    btn.disabled = true;
+                    
+                    let countdown = 10;
+                    const interval = setInterval(() => {
+                        countdown--;
+                        btn.textContent = `⏳ Breaking in ${countdown}s...`;
+                        
+                        if (countdown <= 0) {
+                            clearInterval(interval);
+                            
+                            // Notify background script
+                            try {
+                                chrome.runtime.sendMessage({ action: 'emergencyBreak' }).then(() => {
+                                    window.location.href = 'chrome://newtab/';
+                                }).catch(() => {
+                                    window.location.href = 'chrome://newtab/';
+                                });
+                            } catch (error) {
+                                window.location.href = 'chrome://newtab/';
+                            }
+                        }
+                    }, 1000);
+                } else {
+                    // Reset button if cancelled
+                    event.target.disabled = false;
+                }
+            });
+        }
+
+        function goBack() {
+            // This function is kept for any potential legacy calls
+            document.getElementById('goBackBtn').click();
+        }
+
+        function openNewTab() {
+            // This function is kept for any potential legacy calls
+            document.getElementById('newTabBtn').click();
+        }
+
+        function emergencyBreak() {
+            // This function is kept for any potential legacy calls
+            document.getElementById('emergencyBreakBtn').click();
+        }
 
         // Increment blocked count when page loads
         chrome.runtime.sendMessage({ action: 'incrementBlockedCount' });
