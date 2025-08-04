@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Focus Shield</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 350px;
+            min-height: 500px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            overflow-x: hidden;
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .main-content {
+            padding: 20px;
+        }
+
+        .focus-status {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .status-indicator {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            margin: 0 auto 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            background: rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .status-indicator.active {
+            background: rgba(76, 175, 80, 0.3);
+            box-shadow: 0 0 20px rgba(76, 175, 80, 0.5);
+        }
+
+        .status-text {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .status-subtitle {
+            font-size: 12px;
+            opacity: 0.7;
+        }
+
+        .quick-actions {
+            margin-bottom: 25px;
+        }
+
+        .action-button {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .action-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .action-button.primary {
+            background: rgba(76, 175, 80, 0.3);
+        }
+
+        .action-button.danger {
+            background: rgba(244, 67, 54, 0.3);
+        }
+
+        .stats-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .stats-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+
+        .stat-value {
+            font-weight: 600;
+        }
+
+        .settings-link {
+            text-align: center;
+            padding: 10px;
+        }
+
+        .settings-link a {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            font-size: 12px;
+        }
+
+        .settings-link a:hover {
+            color: white;
+        }
+
+        .time-display {
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .blocked-sites-preview {
+            max-height: 100px;
+            overflow-y: auto;
+        }
+
+        .site-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 5px 10px;
+            border-radius: 15px;
+            margin: 3px;
+            display: inline-block;
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">🛡️ Focus Shield</div>
+        <div class="subtitle">Smart Productivity Blocker</div>
+    </div>
+
+    <div class="main-content">
+        <div class="focus-status">
+            <div class="status-indicator" id="statusIndicator">⏰</div>
+            <div class="status-text" id="statusText">Ready to Focus</div>
+            <div class="status-subtitle" id="statusSubtitle">Click to start a focus session</div>
+        </div>
+
+        <div class="quick-actions">
+            <button class="action-button primary" id="startFocusBtn">
+                🎯 Start Focus Session (25 min)
+            </button>
+            <button class="action-button" id="quickBlockBtn">
+                ⚡ Quick Block (5 min)
+            </button>
+            <button class="action-button danger" id="emergencyBreakBtn" style="display: none;">
+                🚨 Emergency Break
+            </button>
+        </div>
+
+        <div class="stats-section">
+            <div class="stats-title">📊 Today's Progress</div>
+            <div class="stat-item">
+                <span>Focus Time:</span>
+                <span class="stat-value time-display" id="todayFocusTime">0h 0m</span>
+            </div>
+            <div class="stat-item">
+                <span>Sites Blocked:</span>
+                <span class="stat-value" id="todayBlockedCount">0</span>
+            </div>
+            <div class="stat-item">
+                <span>Sessions:</span>
+                <span class="stat-value" id="todaySessionCount">0</span>
+            </div>
+        </div>
+
+        <div class="stats-section">
+            <div class="stats-title">🚫 Active Blocks</div>
+            <div class="blocked-sites-preview" id="blockedSitesPreview">
+                <div class="site-item">facebook.com</div>
+                <div class="site-item">twitter.com</div>
+                <div class="site-item">youtube.com</div>
+                <div class="site-item">reddit.com</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="settings-link">
+        <a href="#" id="settingsLink">⚙️ Settings & Blocked Sites</a>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>
