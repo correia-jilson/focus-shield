@@ -140,6 +140,17 @@ class FocusShieldBackground {
                 sendResponse({ success: true });
                 break;
 
+            case 'emergencyBreak':
+                await this.endSession(true);
+                sendResponse({ success: true });
+                break;
+
+            case 'openPopup':
+                // Extension popup can't be opened programmatically
+                // This is a Chrome limitation for security
+                sendResponse({ success: false, message: 'Cannot open popup programmatically' });
+                break;
+
             default:
                 sendResponse({ error: 'Unknown action' });
         }

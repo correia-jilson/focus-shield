@@ -3,12 +3,14 @@ class FocusShieldPopup {
     constructor() {
         this.isActive = false;
         this.currentSession = null;
+        this.selectedMinutes = 25; // Default session time
         this.init();
     }
 
     async init() {
         await this.loadState();
         this.setupEventListeners();
+        this.setupTimeSelector();
         this.updateUI();
         this.loadStats();
     }
@@ -18,7 +20,8 @@ class FocusShieldPopup {
             'isActive', 
             'currentSession', 
             'todayStats',
-            'blockedSites'
+            'blockedSites',
+            'settings'
         ]);
         
         this.isActive = result.isActive || false;
@@ -33,15 +36,15 @@ class FocusShieldPopup {
             'facebook.com', 'twitter.com', 'youtube.com', 'reddit.com',
             'instagram.com', 'tiktok.com', 'netflix.com', 'twitch.tv'
         ];
+        
+        // Load default session duration from settings
+        const settings = result.settings || {};
+        this.selectedMinutes = settings.defaultSessionDuration || 25;
     }
 
     setupEventListeners() {
         document.getElementById('startFocusBtn').addEventListener('click', () => {
-            this.startFocusSession(25);
-        });
-
-        document.getElementById('quickBlockBtn').addEventListener('click', () => {
-            this.startFocusSession(5);
+            this.startFocusSession();
         });
 
         document.getElementById('emergencyBreakBtn').addEventListener('click', () => {
@@ -54,7 +57,47 @@ class FocusShieldPopup {
         });
     }
 
-    async startFocusSession(minutes) {
+    setupTimeSelector() {
+        // Handle time button clicks
+        document.querySelectorAll('.time-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Remove active class from all buttons
+                document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+                // Add active class to clicked button
+                btn.classList.add('active');
+                // Set selected minutes
+                this.selectedMinutes = parseInt(btn.dataset.minutes);
+                // Clear custom input
+                document.getElementById('customMinutes').value = '';
+                // Update button text
+                this.updateStartButtonText();
+            });
+        });
+
+        // Handle custom input
+        const customInput = document.getElementById('customMinutes');
+        customInput.addEventListener('input', () => {
+            const value = parseInt(customInput.value);
+            if (value && value > 0 && value <= 180) {
+                // Remove active class from preset buttons
+                document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+                // Set selected minutes
+                this.selectedMinutes = value;
+                this.updateStartButtonText();
+            }
+        });
+
+        // Initialize button text
+        this.updateStartButtonText();
+    }
+
+    updateStartButtonText() {
+        const startBtn = document.getElementById('startFocusBtn');
+        startBtn.textContent = `🎯 Start Focus Session (${this.selectedMinutes} min)`;
+    }
+
+    async startFocusSession() {
+        const minutes = this.selectedMinutes;
         const session = {
             startTime: Date.now(),
             duration: minutes * 60 * 1000,
@@ -92,14 +135,23 @@ class FocusShieldPopup {
         );
 
         if (confirmed) {
-            // Add a 10-second delay to create friction
-            document.getElementById('emergencyBreakBtn').textContent = '⏳ Breaking in 10s...';
-            document.getElementById('emergencyBreakBtn').disabled = true;
+            const btn = document.getElementById('emergencyBreakBtn');
+            btn.textContent = '⏳ Breaking in 10s...';
+            btn.disabled = true;
 
-            setTimeout(async () => {
-                await this.endSession(true);
-                this.incrementEmergencyBreaks();
-            }, 10000);
+            let countdown = 10;
+            const countdownInterval = setInterval(() => {
+                countdown--;
+                btn.textContent = `⏳ Breaking in ${countdown}s...`;
+                
+                if (countdown <= 0) {
+                    clearInterval(countdownInterval);
+                    this.endSession(true);
+                    this.incrementEmergencyBreaks();
+                    btn.textContent = '🚨 Emergency Break';
+                    btn.disabled = false;
+                }
+            }, 1000);
         }
     }
 
@@ -133,7 +185,6 @@ class FocusShieldPopup {
         const statusText = document.getElementById('statusText');
         const statusSubtitle = document.getElementById('statusSubtitle');
         const startBtn = document.getElementById('startFocusBtn');
-        const quickBtn = document.getElementById('quickBlockBtn');
         const emergencyBtn = document.getElementById('emergencyBreakBtn');
 
         if (this.isActive && this.currentSession) {
@@ -146,8 +197,8 @@ class FocusShieldPopup {
             statusText.textContent = 'Focus Mode Active';
             statusSubtitle.textContent = `${minutes}:${seconds.toString().padStart(2, '0')} remaining`;
 
+            document.getElementById('timeSelector').style.display = 'none';
             startBtn.style.display = 'none';
-            quickBtn.style.display = 'none';
             emergencyBtn.style.display = 'block';
 
             // Update timer every second
@@ -158,8 +209,8 @@ class FocusShieldPopup {
             statusText.textContent = 'Ready to Focus';
             statusSubtitle.textContent = 'Click to start a focus session';
 
+            document.getElementById('timeSelector').style.display = 'block';
             startBtn.style.display = 'block';
-            quickBtn.style.display = 'block';
             emergencyBtn.style.display = 'none';
         }
     }

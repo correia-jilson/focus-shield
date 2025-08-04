@@ -222,11 +222,23 @@
 
             // Set up button handlers
             document.getElementById('focus-go-back').addEventListener('click', () => {
-                window.history.back();
+                if (window.history.length > 1) {
+                    window.history.back();
+                } else {
+                    window.location.href = 'chrome://newtab/';
+                }
             });
 
             document.getElementById('focus-new-tab').addEventListener('click', () => {
-                chrome.runtime.sendMessage({ action: 'openNewTab' });
+                try {
+                    chrome.runtime.sendMessage({ action: 'openNewTab' });
+                    // Also redirect current page
+                    setTimeout(() => {
+                        window.location.href = 'chrome://newtab/';
+                    }, 100);
+                } catch (error) {
+                    window.location.href = 'chrome://newtab/';
+                }
             });
 
             // Update timer

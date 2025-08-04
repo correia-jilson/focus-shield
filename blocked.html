@@ -271,6 +271,7 @@
             <button class="action-button danger-button" onclick="emergencyBreak()">
                 🚨 Emergency Break
             </button>
+            
         </div>
     </div>
 
@@ -372,18 +373,48 @@
         }
 
         function goBack() {
-            window.history.back();
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.location.href = 'chrome://newtab/';
+            }
         }
 
         function openNewTab() {
-            chrome.tabs.create({ url: 'chrome://newtab/' });
+            // Try to open new tab, fallback to current tab
+            try {
+                chrome.tabs.create({ url: 'chrome://newtab/' }, () => {
+                    // Close current tab after new tab opens
+                    chrome.tabs.getCurrent((tab) => {
+                        if (tab) {
+                            chrome.tabs.remove(tab.id);
+                        }
+                    });
+                });
+            } catch (error) {
+                // Fallback: navigate current tab to new tab page
+                window.location.href = 'chrome://newtab/';
+            }
         }
 
         function emergencyBreak() {
             if (confirm('Are you sure you want to end your focus session? This will be recorded in your stats.')) {
-                chrome.runtime.sendMessage({ action: 'emergencyBreak' });
-                setTimeout(() => {
-                    window.location.reload();
+                // Add 10 second delay for friction
+                const btn = event.target;
+                btn.textContent = '⏳ Breaking in 10s...';
+                btn.disabled = true;
+                
+                let countdown = 10;
+                const interval = setInterval(() => {
+                    countdown--;
+                    btn.textContent = `⏳ Breaking in ${countdown}s...`;
+                    
+                    if (countdown <= 0) {
+                        clearInterval(interval);
+                        chrome.runtime.sendMessage({ action: 'emergencyBreak' }, () => {
+                            window.location.href = 'chrome://newtab/';
+                        });
+                    }
                 }, 1000);
             }
         }
